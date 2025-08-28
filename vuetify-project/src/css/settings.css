@@ -1,0 +1,56 @@
+@charset "UTF-8";
+/**
+ * src/styles/settings.scss
+ *
+ * Configures SASS variables and Vuetify overwrites
+ */
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700&display=swap");
+@font-face {
+  font-family: "LINESeedTW";
+  src: url("/src/assets/fonts/LINESeedTW_OTF_Rg.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: "LINESeedTW";
+  src: url("/src/assets/fonts/LINESeedTW_OTF_Bd.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+}
+/* Google Fonts – Plus Jakarta Sans */
+html,
+body,
+* {
+  font-family: "LINESeedTW", "Plus Jakarta Sans", sans-serif !important;
+}
+
+.en,
+[lang=en] {
+  font-family: "Plus Jakarta Sans", sans-serif !important;
+}
+
+.filepond--drop-label {
+  cursor: pointer;
+}
+
+.v-btn {
+  --v-ripple-opacity: 0 !important; /* 讓波浪透明，不會看到 */
+  background-color: transparent !important;
+  -webkit-box-shadow: none !important;
+          box-shadow: none !important;
+}
+
+.v-btn--active {
+  background-color: transparent !important;
+  -webkit-box-shadow: none !important;
+          box-shadow: none !important;
+  color: var(--v-theme-secondary) !important;
+}
+
+.v-btn-toggle {
+  max-width: 100%; /* 設置最大寬度為 100% */
+  white-space: nowrap; /* 防止換行，保持在單行內 */
+  -webkit-overflow-scrolling: touch; /* iOS 滾動優化 */
+  overflow: hidden; /* 隱藏滾動條 */
+  overflow-x: auto; /* 允許橫向滾動 */
+}
