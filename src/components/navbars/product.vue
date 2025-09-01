@@ -1,86 +1,99 @@
 <template>
-  <v-app-bar app flat>
-    <v-row align="center" class="px-6 text-text">
-      <v-col cols="4">
-        <v-btn style="pointer-events: none">
-          <router-link class="d-flex align-center text-decoration-none" exact to="/myAccount">
-            <Icon
-              class="mr-2"
-              icon="streamline-plump:money-cash-bill-1-solid"
-              style="font-size: 24px; color: #c6b3c9"
-            />
-            <span class="text-subtitle-1 text-primary">情緒幣餘額$</span>
-          </router-link>
+  <v-app-bar app class="px-6" flat>
+    <!-- 手機板 Logo (左側) -->
+    <div class="d-flex d-md-none align-center">
+      <router-link class="text-decoration-none" exact to="/">
+        <img alt="LOGO" height="50" :src="logo" />
+      </router-link>
+    </div>
+
+    <!-- 桌面板 情緒幣餘額 (左側) -->
+    <div class="d-none d-md-flex" style="flex-basis: 33.33%">
+      <v-btn style="pointer-events: none">
+        <router-link class="d-flex align-center text-decoration-none" exact to="/myAccount">
+          <Icon
+            class="mr-2"
+            icon="streamline-plump:money-cash-bill-1-solid"
+            style="font-size: 24px; color: #c6b3c9"
+          />
+          <span class="text-subtitle-1 text-primary">情緒幣餘額$</span>
+        </router-link>
+      </v-btn>
+    </div>
+
+    <v-spacer />
+
+    <!-- 桌面板 Logo (中間) -->
+    <div class="d-none d-md-flex">
+      <v-app-bar-title>
+        <router-link class="text-decoration-none" exact to="/">
+          <div class="d-flex align-center justify-center">
+            <img alt="LOGO" height="50" :src="logo" />
+          </div>
+        </router-link>
+      </v-app-bar-title>
+    </div>
+
+    <v-spacer />
+
+    <!-- 右側按鈕 -->
+    <div class="d-flex align-center justify-end" style="flex-basis: 33.33%">
+      <v-btn v-if="isSmAndDown" icon="mdi-menu" @click="onMenuClick" />
+      <template v-else>
+        <v-btn icon="mdi-magnify" @click="onSearch" />
+        <v-btn exact icon router :to="isLoggedIn ? '/favorite' : '/register'">
+          <Icon height="24" icon="tabler:mood-heart" width="24" />
         </v-btn>
-      </v-col>
+        <v-btn exact icon router to="/cart">
+          <v-badge
+            color="accent"
+            :content="cartBadgeContent"
+            location="top right"
+            :model-value="user.cartTotal > 0"
+          >
+            <v-icon>mdi-shopping-outline</v-icon>
+          </v-badge>
+        </v-btn>
 
-      <v-col class="text-center" cols="4">
-        <v-app-bar-title>
-          <router-link class="text-decoration-none" exact to="/">
-            <div class="d-flex align-center justify-center">
-              <img alt="LOGO" height="50" :src="logo" />
-            </div>
-          </router-link>
-        </v-app-bar-title>
-      </v-col>
-
-      <v-col class="text-right" cols="4">
-        <v-btn v-if="isSmAndDown" icon="mdi-menu" @click="onMenuClick" />
-        <template v-else>
-          <v-btn icon="mdi-magnify" @click="onSearch" />
-          <v-btn exact icon router :to="isLoggedIn ? '/favorite' : '/register'">
-            <Icon height="24" icon="tabler:mood-heart" width="24" />
+        <template v-if="!isLoggedIn">
+          <v-btn exact icon router to="/register">
+            <v-icon>mdi-account-circle-outline</v-icon>
           </v-btn>
-          <v-btn exact icon router to="/cart">
-            <v-badge
-              color="accent"
-              :content="cartBadgeContent"
-              location="top right"
-              :model-value="user.cartTotal > 0"
-            >
-              <v-icon>mdi-shopping-outline</v-icon>
-            </v-badge>
-          </v-btn>
-
-          <template v-if="!isLoggedIn">
-            <v-btn exact icon router to="/register">
-              <v-icon>mdi-account-circle-outline</v-icon>
-            </v-btn>
-          </template>
-          <template v-else>
-            <v-menu offset-y>
-              <template #activator="{ props }">
-                <v-btn v-bind="props" icon>
-                  <v-avatar size="32" variant="text">
-                    <v-icon>mdi-account-circle-outline</v-icon>
-                  </v-avatar>
-                </v-btn>
-              </template>
-              <v-list>
-                <v-list-item @click="myAccount">
-                  <div class="d-flex align-center">
-                    <v-icon class="mr-2">mdi-account-cog-outline</v-icon>
-                    <v-list-item-title>我的帳戶</v-list-item-title>
-                  </div>
-                </v-list-item>
-                <v-list-item @click="logout">
-                  <div class="d-flex align-center">
-                    <v-icon class="mr-2">mdi-logout</v-icon>
-                    <v-list-item-title>登出</v-list-item-title>
-                  </div>
-                </v-list-item>
-              </v-list>
-            </v-menu>
-          </template>
         </template>
-      </v-col>
-    </v-row>
+        <template v-else>
+          <v-menu offset-y>
+            <template #activator="{ props }">
+              <v-btn v-bind="props" icon>
+                <v-avatar size="32" variant="text">
+                  <v-icon>mdi-account-circle-outline</v-icon>
+                </v-avatar>
+              </v-btn>
+            </template>
+            <v-list>
+              <v-list-item @click="myAccount">
+                <div class="d-flex align-center">
+                  <v-icon class="mr-2">mdi-account-cog-outline</v-icon>
+                  <v-list-item-title>我的帳戶</v-list-item-title>
+                </div>
+              </v-list-item>
+              <v-list-item @click="logout">
+                <div class="d-flex align-center">
+                  <v-icon class="mr-2">mdi-logout</v-icon>
+                  <v-list-item-title>登出</v-list-item-title>
+                </div>
+              </v-list-item>
+            </v-list>
+          </v-menu>
+        </template>
+      </template>
+    </div>
   </v-app-bar>
 
-  <SearchDrawerFloating v-model="showSearchDrawer" />
+  <SearchDrawerFloating v-if="showSearchDrawer && !menu" v-model="showSearchDrawer" />
 
   <template v-if="isSmAndDown">
     <v-navigation-drawer
+      v-if="!showSearchDrawer"
       v-model="menu"
       class="px-8 pt-6 text-text"
       :close-on-click="false"
@@ -179,6 +192,7 @@
   const showSearchDrawer = ref(false)
 
   function onSearch() {
+    closeAllDrawers()
     showSearchDrawer.value = !showSearchDrawer.value
   }
   function onSearchDrawer() {
@@ -255,6 +269,17 @@
       router.push(to) // 如果登錄，直接跳轉到目標頁面
     }
   }
+
+  watch([menu, showSearchDrawer], ([menuOpen, searchDrawerOpen]) => {
+    if (menuOpen && searchDrawerOpen) {
+      // 如果選單和搜尋抽屜同時開啟，關閉其中一個
+      if (menuOpen) {
+        showSearchDrawer.value = false // 關閉搜尋抽屜
+      } else {
+        menu.value = false // 關閉選單抽屜
+      }
+    }
+  })
 </script>
 
 <style scoped>

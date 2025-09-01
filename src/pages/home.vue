@@ -9,7 +9,7 @@
         <!-- 左邊的內容 -->
         <v-col class="d-flex flex-column py-10 px-16 justify-space-between bg-img" cols="6">
           <div class="d-flex align-top justify-space-between">
-            <img alt="LOGO" height="80%" :src="logo" />
+            <img alt="LOGO" height="80%" :src="logo" style="user-select: none" />
           </div>
 
           <template v-if="displayedProduct">
@@ -87,7 +87,7 @@
         </v-col>
         <!-- 右邊的內容 -->
         <v-col class="d-flex pa-4 justify-center h-100 w-100" cols="4">
-          <Vue3Marquee :clone="true" :duration="10" :pause-on-hover="true" :vertical="true">
+          <Vue3Marquee :clone="true" :duration="20" :pause-on-hover="true" :vertical="true">
             <div
               v-for="product in products"
               :key="product._id"
@@ -114,7 +114,7 @@
       <!-- 主內容 -->
       <div class="flex-grow-1 w-100 pa-4" style="min-height: 0">
         <div class="d-flex align-start flex-column px-4 py-8 px-sm-8 py-sm-16">
-          <img alt="LOGO" height="60px" :src="logo" />
+          <img alt="LOGO" height="60px" :src="logo" style="user-select: none" />
           <div class="d-flex flex-wrap justify-start my-4">
             <span
               ref="subtitle1Ref"

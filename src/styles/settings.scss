@@ -68,3 +68,19 @@ body,
   overflow: hidden; /* 隱藏滾動條 */
   overflow-x: auto; /* 允許橫向滾動 */
 }
+
+/* 改變啟用分頁點的背景顏色為 Vuetify 主題色 primary */
+.main-swiper .swiper-pagination-bullet-active {
+  background-color: rgb(var(--v-theme-primary)) !important;
+}
+
+/* 改變未啟用分頁點的背景顏色為灰色 */
+.main-swiper .swiper-pagination-bullet {
+  background-color: grey;
+}
+
+/* 改變導航箭頭的顏色為主題色 */
+.swiper-button-prev,
+.swiper-button-next {
+  color: rgb(var(--v-theme-accent)) !important;
+}

@@ -14,7 +14,7 @@
       <v-row class="flex-grow-0" dense>
         <v-col cols="2">
           <router-link class="text-decoration-none" to="/">
-            <p class="text-h5 pa-3">logo</p>
+            <img alt="LOGO" height="50" src="@/assets/logo.svg" />
           </router-link>
         </v-col>
         <v-col class="d-flex justify-end" cols="10">

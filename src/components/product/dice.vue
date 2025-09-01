@@ -93,10 +93,6 @@
             <span class="font-weight-bold text-h2">{{ result ? `${currentFace}` : '?' }}</span>
           </div>
         </div>
-        <div v-if="result" class="mt-4">
-          <p class="text-h6">{{ result }}</p>
-          <p class="text-subtitle-1">價格 × {{ multiplier }}</p>
-        </div>
         <p class="mt-2 text-body-1">定義的價值是感受的回聲，擲骰，讓你的選擇也成為情緒的一部分。</p>
         <p class="text-secondary text-body-2">
           擲骰有機率改變你所承擔的情緒強度，有人得以減輕，有人更深感受。
@@ -208,7 +204,7 @@
             emit('roll-complete', finalResult.multiplier)
             createSnackbar({
               text: `擲骰結果: ${finalResult.text}`,
-              snackbarProps: { color: 'success' },
+              snackbarProps: { color: 'accent' },
             })
           })
           .catch((error) => {

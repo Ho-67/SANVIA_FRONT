@@ -3,7 +3,7 @@
     <v-row class="mr-0">
       <!-- Main content column -->
       <v-col cols="12" md="9">
-        <v-row>
+        <v-row class="pa-6">
           <!-- 載入中骨架 -->
           <template v-if="isLoading">
             <v-col v-for="n in 9" :key="n" cols="6" lg="4" md="6">
@@ -38,12 +38,12 @@
 </template>
 
 <script setup>
+  import { storeToRefs } from 'pinia'
   import { computed, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
-  import { useProductStore } from '@/stores/product'
-  import { storeToRefs } from 'pinia'
   import ProductCard from '@/components/product/productCard.vue'
   import RankingSidebar from '@/components/product/rankingSidebar.vue'
+  import { useProductStore } from '@/stores/product'
 
   const route = useRoute()
   const productStore = useProductStore()
@@ -55,7 +55,7 @@
     // 如果沒有排序參數，直接返回原陣列 (後端預設為最新)
     if (!sortBy) return products.value
 
-    const order = parseInt(sortOrder) || -1
+    const order = Number.parseInt(sortOrder) || -1
 
     // 複製陣列以避免修改原始 store 狀態
     return [...products.value].sort((a, b) => {
