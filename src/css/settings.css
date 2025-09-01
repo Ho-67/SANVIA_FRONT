@@ -35,16 +35,20 @@ body,
 
 .v-btn {
   --v-ripple-opacity: 0 !important; /* 讓波浪透明，不會看到 */
-  background-color: transparent !important;
   -webkit-box-shadow: none !important;
           box-shadow: none !important;
 }
+.v-btn[class*=text], .v-btn[class*=plain] {
+  background-color: transparent !important;
+}
 
 .v-btn--active {
-  background-color: transparent !important;
   -webkit-box-shadow: none !important;
           box-shadow: none !important;
   color: var(--v-theme-secondary) !important;
+}
+.v-btn--active[class*=text], .v-btn--active[class*=plain] {
+  background-color: transparent !important;
 }
 
 .v-btn-toggle {

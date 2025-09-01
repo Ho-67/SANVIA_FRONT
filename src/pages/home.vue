@@ -206,7 +206,7 @@
         </div>
       </div>
     </div>
-    <v-snackbar v-model="snackbar" color="primary" :timeout="2000"> 開發中，敬請期待！ </v-snackbar>
+    <v-snackbar v-model="snackbar" color="accent" :timeout="2000"> 開發中，敬請期待！ </v-snackbar>
   </v-container>
 </template>
 
