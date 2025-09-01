@@ -132,11 +132,11 @@
   import { useRouter } from 'vue-router'
   import { useDisplay } from 'vuetify'
   import { useSnackbar } from 'vuetify-use-dialog'
-  import logo from '/logo_s.svg'
   import LoginDialog from '@/components/login.vue'
   import searchDrawer from '@/components/searchDrawerSide.vue'
   import userService from '@/services/user'
   import { useUserStore } from '@/stores/user'
+  import logo from '/favicon.svg'
 
   // Vuetify 響應式偵測
   const display = useDisplay()

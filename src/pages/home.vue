@@ -1,42 +1,19 @@
 <template>
-  <v-container class="pa-0 bg-section text-text d-flex flex-column" fluid>
+  <v-container class="pa-0 bg-surface text-text d-flex flex-column h-screen" fluid>
+    <!-- GSAP爆炸動畫 -->
+    <div ref="explosionLayer" class="explosion-layer" />
+
     <!-- 大螢幕 -->
-    <div v-if="lgAndUp" class="d-flex w-100 flex-grow-1 h-screen" style="overflow: hidden">
+    <div v-if="lgAndUp" ref="desktopReff" class="d-flex w-100 flex-grow-1 h-screen scroll-hidden">
       <v-row class="flex-grow-1" no-gutters>
         <!-- 左邊的內容 -->
-        <v-col class="d-flex flex-column py-10 px-16 justify-center" cols="6">
+        <v-col class="d-flex flex-column py-10 px-16 justify-space-between bg-img" cols="6">
           <div class="d-flex align-top justify-space-between">
             <img alt="LOGO" height="80%" :src="logo" />
-            <div class="big-screen-text">
-              <span
-                ref="subtitle1Ref"
-                class="text-no-wrap text-body-2 text-accent font-weight-medium"
-              >
-                <span
-                  v-for="(char, index) in '情緒是一種語言，也是一種商品。'.split('')"
-                  :key="index"
-                  style="display: inline-block"
-                >
-                  {{ char }}
-                </span>
-              </span>
-              <span
-                ref="subtitle2Ref"
-                class="text-no-wrap text-body-2 text-accent font-weight-medium"
-              >
-                <span
-                  v-for="(char, index) in '我們讓感受被理解，被保存，甚至被交易。'.split('')"
-                  :key="index"
-                  style="display: inline-block"
-                >
-                  {{ char }}
-                </span>
-              </span>
-            </div>
           </div>
 
           <template v-if="displayedProduct">
-            <div class="ma-auto w-100" style="max-width: 450px">
+            <div class="mx-auto mt-n8 w-100" style="max-width: 350px">
               <productCard v-bind="displayedProduct" />
             </div>
           </template>
@@ -69,14 +46,14 @@
             </div>
           </template>
 
-          <v-btn class="rounded-pill mt-4 w-25" color="primary" variant="flat">
+          <v-btn class="rounded-pill my-2 w-25" color="primary" variant="flat" @click="showHint">
             探索社群
             <v-icon right>mdi-arrow-right</v-icon>
           </v-btn>
         </v-col>
         <!-- 中間的內容 -->
-        <v-col class="d-flex pa-4 align-center justify-center" cols="3">
-          <div class="h-100 w-100 d-flex flex-column justify-space-between align-center py-6">
+        <v-col class="d-flex align-center justify-center py-10" cols="2">
+          <div class="h-100 w-100 d-flex flex-column justify-space-between align-center my-auto">
             <div class="d-flex flex-column justify-space-around align-center">
               <v-btn
                 icon="mdi-emoticon-happy-outline"
@@ -109,7 +86,7 @@
           </div>
         </v-col>
         <!-- 右邊的內容 -->
-        <v-col class="d-flex pa-4 justify-center h-100 w-100" cols="3">
+        <v-col class="d-flex pa-4 justify-center h-100 w-100" cols="4">
           <Vue3Marquee :clone="true" :duration="10" :pause-on-hover="true" :vertical="true">
             <div
               v-for="product in products"
@@ -132,12 +109,11 @@
     <div
       v-else
       ref="heroRef"
-      class="pa-4 d-flex flex-column align-center justify-center w-100 h-screen-minus-navbar"
-      style="overflow: hidden"
+      class="d-flex flex-column align-center justify-center w-100 scroll-hidden h-screen"
     >
       <!-- 主內容 -->
-      <div class="flex-grow-1 w-100">
-        <div class="d-flex align-start flex-column pa-16 pl-8">
+      <div class="flex-grow-1 w-100 pa-4" style="min-height: 0">
+        <div class="d-flex align-start flex-column px-4 py-8 px-sm-8 py-sm-16">
           <img alt="LOGO" height="60px" :src="logo" />
           <div class="d-flex flex-wrap justify-start my-4">
             <span
@@ -165,13 +141,21 @@
               </span>
             </span>
           </div>
-          <v-btn class="rounded-pill w-25" color="primary" height="48" variant="flat">
+          <v-btn
+            class="rounded-pill w-25"
+            color="primary"
+            height="48"
+            variant="flat"
+            @click="showHint"
+          >
             探索社群
             <v-icon right>mdi-arrow-right</v-icon>
           </v-btn>
         </div>
 
-        <div class="d-flex justify-end pa-8 pl-16 w-100">
+        <div class="d-flex justify-end px-4 py-8 px-sm-8 py-sm-16 w-100">
+          <div v-show="mdAndUp" class="w-50 bg-img" />
+
           <div class="d-flex flex-column justify-space-around mx-4">
             <v-btn icon="mdi-emoticon-happy-outline" value="正面" @click="selectEmotion('正面')" />
             <v-btn
@@ -222,6 +206,7 @@
         </div>
       </div>
     </div>
+    <v-snackbar v-model="snackbar" color="primary" :timeout="2000"> 開發中，敬請期待！ </v-snackbar>
   </v-container>
 </template>
 
@@ -229,19 +214,20 @@
   import { Icon } from '@iconify/vue'
   import { gsap } from 'gsap'
   import { Physics2DPlugin } from 'gsap/Physics2DPlugin'
-  import { nextTick, onMounted, ref } from 'vue'
+  import { nextTick, onMounted, onUnmounted, ref } from 'vue'
   import { Vue3Marquee } from 'vue3-marquee'
   import { useRouter } from 'vue-router'
   import { useDisplay, useTheme } from 'vuetify'
-  import logo from '@/assets/logo_sanvia.png'
+  import logo from '@/assets/logo.svg'
   import Echart from '@/components/echarts/EchartsDynamic.vue'
   import productCard from '@/components/product/productCard.vue'
   import productService from '@/services/product'
 
-  const { lgAndUp } = useDisplay()
+  const { lgAndUp, mdAndUp } = useDisplay()
   const theme = useTheme()
   const router = useRouter()
 
+  const desktopReff = ref(null) // For explosion effect
   const products = ref([])
   const selectedEmotion = ref(null)
   const displayedProduct = ref(null)
@@ -249,6 +235,11 @@
   const animatedTextRef = ref(null)
   const subtitle1Ref = ref(null)
   const subtitle2Ref = ref(null)
+  const snackbar = ref(false)
+
+  const showHint = () => {
+    snackbar.value = true
+  }
 
   const goToProduct = (id) => {
     router.push(`/product/${id}`)
@@ -292,13 +283,13 @@
     }
   }
 
-  // GSAP
-  // 小螢幕點擊
+  // GSAP螢幕點擊
   gsap.registerPlugin(Physics2DPlugin)
   const heroRef = ref(null)
+  const explosionLayer = ref(null)
 
   const createExplosion = (x, y) => {
-    const container = heroRef.value
+    const container = explosionLayer.value
     if (!container) return
 
     const currentColors = theme.themes.value[theme.global.name.value].colors
@@ -310,6 +301,34 @@
 
     const count = 4
     const explosion = gsap.timeline()
+
+    // 光暈效果
+    const glow = document.createElement('div')
+    glow.style.position = 'absolute'
+    glow.style.left = `${x}px`
+    glow.style.top = `${y}px`
+    glow.style.transform = 'translate(-50%, -50%)'
+    glow.style.width = '60px'
+    glow.style.height = '60px'
+    glow.style.borderRadius = '50%'
+    glow.style.background = 'radial-gradient(circle, #C6B3C900 0%, #C6B3C9 80%, #C6B3C900 0%)'
+    glow.style.filter = 'blur(4px)'
+    glow.style.mixBlendMode = 'screen'
+    glow.style.pointerEvents = 'none'
+    glow.style.zIndex = '1000'
+    container.append(glow)
+
+    gsap.fromTo(
+      glow,
+      { scale: 0.5, opacity: 0.8 },
+      {
+        scale: 2,
+        opacity: 0,
+        duration: 0.6,
+        ease: 'power2.out',
+        onComplete: () => glow.remove(),
+      }
+    )
 
     for (let i = 0; i < count; i++) {
       const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
@@ -332,9 +351,9 @@
           icon,
           {
             physics2D: {
-              angle: gsap.utils.random(60, 120), // 以垂直下方為中心對稱60度
-              velocity: gsap.utils.random(150, 300), // 初速小很多
-              gravity: 800, // 下墜感
+              angle: gsap.utils.random(60, 120),
+              velocity: gsap.utils.random(150, 300),
+              gravity: 800,
               bounds: container,
             },
             rotation: gsap.utils.random(-90, 90),
@@ -353,6 +372,7 @@
           '-=0.5'
         )
     }
+
     return explosion
   }
 
@@ -476,21 +496,89 @@
         const masterTimeline = gsap.timeline()
         masterTimeline.add(animateSubtitle(subtitle1Ref)).add(animateSubtitle(subtitle2Ref))
       }
-    })
 
-    // 點擊 anywhere 觸發 confetti
-    if (heroRef.value) {
-      heroRef.value.addEventListener('click', (e) => {
-        // 避免在按鈕等可互動元素上觸發
-        if (e.target.closest('button, a, input, .v-card')) return
-        const rect = heroRef.value.getBoundingClientRect()
-        createExplosion(e.clientX - rect.left, e.clientY - rect.top)
+      // --- Setup Explosion Listeners for both large and small screens ---
+      const largeEl = desktopReff.value
+      const smallEl = heroRef.value
+
+      const explosionHandler = (e) => {
+        const pointer = e.touches ? e.touches[0] : e
+
+        // 避免在可互動元素上觸發
+        // if (e.target.closest('button, a, input, .v-card, .product-scroll-item')) {
+        //   return
+        // }
+
+        // Use viewport coordinates directly
+        createExplosion(pointer.clientX, pointer.clientY)
+      }
+
+      if (largeEl) {
+        largeEl.addEventListener('mousedown', explosionHandler)
+        largeEl.addEventListener('touchstart', explosionHandler, { passive: true })
+      }
+      if (smallEl) {
+        smallEl.addEventListener('mousedown', explosionHandler)
+        smallEl.addEventListener('touchstart', explosionHandler, { passive: true })
+      }
+
+      onUnmounted(() => {
+        if (largeEl) {
+          largeEl.removeEventListener('mousedown', explosionHandler)
+          largeEl.removeEventListener('touchstart', explosionHandler)
+        }
+        if (smallEl) {
+          smallEl.removeEventListener('mousedown', explosionHandler)
+          smallEl.removeEventListener('touchstart', explosionHandler)
+        }
       })
-    }
+    })
   })
 </script>
 
 <style scoped>
+  .bg-img {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .bg-img::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url('@/assets/favicon_frame.svg') no-repeat;
+    background-size: contain;
+    background-position: center;
+    opacity: 0.4;
+    z-index: 0;
+
+    /* 持續旋轉動畫 */
+    animation: spin linear infinite;
+    animation-duration: 120s;
+
+    opacity: 0.2;
+    transition: opacity 0.8s ease-in-out; /* 平滑變亮變暗 */
+  }
+
+  .bg-img:hover::before {
+    opacity: 0.1;
+  }
+
+  .bg-img > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* 單一旋轉動畫 */
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
   .big-screen-text {
     padding-top: 24px;
     margin-left: 12px;
@@ -529,13 +617,31 @@
     object-fit: cover;
     border-radius: 8px;
     transition: transform 0.3s ease;
+    will-change: transform; /* 提前優化 GPU 渲染 */
   }
 
   .product-scroll-item:hover .product-scroll-img {
     transform: scale(1.05);
   }
 
-  .h-screen-minus-navbar {
-    height: calc(100vh - 64px);
+  .explosion-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: visible;
+    z-index: 999;
+  }
+
+  /* 對可滾動元素隱藏滾動條，但保留滾動功能 */
+  .scroll-hidden {
+    position: relative;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE 10+ */
+  }
+
+  .scroll-hidden::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
   }
 </style>

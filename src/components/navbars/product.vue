@@ -18,8 +18,7 @@
         <v-app-bar-title>
           <router-link class="text-decoration-none" exact to="/">
             <div class="d-flex align-center justify-center">
-              <img alt="LOGO" height="50" :src="logo" width="50" />
-              <span class="text-h5 text-primary font-weight-bold">SANVIA</span>
+              <img alt="LOGO" height="50" :src="logo" />
             </div>
           </router-link>
         </v-app-bar-title>
@@ -156,10 +155,10 @@
   import { useRouter } from 'vue-router'
   import { useDisplay, useTheme } from 'vuetify'
   import { useSnackbar } from 'vuetify-use-dialog'
+  import logo from '@/assets/logo.svg'
   import SearchDrawerFloating from '@/components/searchDrawerFloating.vue'
   import userService from '@/services/user'
   import { useUserStore } from '@/stores/user'
-  import logo from '/logo_s.svg'
 
   const theme = useTheme()
 
