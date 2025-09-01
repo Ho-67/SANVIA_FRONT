@@ -68,13 +68,17 @@
                     ref="fileAgent"
                     v-model="fileRecords"
                     accepted-file-types="image/jpeg, image/png, image/gif"
+                    :allow-image-preview="true"
                     :allow-multiple="true"
+                    :allow-remove="true"
                     :credits="''"
                     :files="fileRecords"
+                    :image-preview-height="200"
                     :label-idle="'拖曳或點選 上傳圖片（第一張為封面圖）'"
                     :label-max-file-size="'最大允許大小：{filesize}'"
                     :max-file-size="'1MB'"
                     :max-files="5"
+                    :server="filePondServer"
                     @updatefiles="updateCoverImage"
                   />
                 </v-col>
@@ -107,7 +111,7 @@
                 <p v-if="isFeaturesFull" class="text-accent text-error ml-2">最多新增 10 個</p>
               </div>
               <v-divider class="my-2" />
-              <div v-for="(feature, index) in features.value.value" :key="index">
+              <div v-for="(feature, index) in features.value.value" :key="feature.tempId">
                 <v-row class="mt-2" no-gutters>
                   <v-col cols="12" md="4">
                     <v-select
@@ -117,12 +121,13 @@
                       :items="['文字說明', '圖片說明', '影音說明']"
                       label="內容類型"
                       variant="outlined"
+                      @update:model-value="handleContentTypeChange(feature)"
                     />
                   </v-col>
                   <v-col cols="12" md="8">
                     <v-text-field
                       v-if="feature.type === '文字說明'"
-                      v-model="feature.content"
+                      v-model="feature.content[0]"
                       class="pl-md-2"
                       density="compact"
                       hide-details
@@ -138,14 +143,22 @@
                           ? 'image/jpeg, image/png, image/gif'
                           : 'audio/mpeg, audio/wav, video/mp4'
                       "
+                      :allow-audio-preview="true"
+                      :allow-image-preview="true"
+                      :allow-media-preview="true"
                       :allow-multiple="true"
+                      :allow-remove="true"
+                      :allow-video-preview="true"
                       :class="'pl-md-2'"
                       :credits="''"
                       :files="dynamicFiles['feature' + feature.tempId]"
+                      :image-preview-height="200"
                       :label-idle="
                         '拖曳或點選 上傳 ' + (feature.type === '圖片說明' ? '圖片說明' : '影音說明')
                       "
                       :max-file-size="'20MB'"
+                      :max-files="10"
+                      :server="filePondServer"
                       @updatefiles="handleFileUpload(feature, 'feature', $event)"
                     />
                   </v-col>
@@ -178,7 +191,7 @@
                 <p v-if="isSpecificationsFull" class="text-accent text-error ml-2">最多新增 5 個</p>
               </div>
               <v-divider class="my-2" />
-              <div v-for="(spec, index) in specifications.value.value" :key="index">
+              <div v-for="(spec, index) in specifications.value.value" :key="spec.tempId">
                 <v-row class="mt-2" no-gutters>
                   <v-col cols="12" md="4">
                     <v-select
@@ -188,12 +201,13 @@
                       :items="['文字說明', '圖片說明']"
                       label="內容類型"
                       variant="outlined"
+                      @update:model-value="handleContentTypeChange(spec)"
                     />
                   </v-col>
                   <v-col cols="12" md="8">
                     <v-text-field
                       v-if="spec.type === '文字說明'"
-                      v-model="spec.content"
+                      v-model="spec.content[0]"
                       class="pl-md-2"
                       density="compact"
                       hide-details
@@ -205,12 +219,17 @@
                       :id="'specPond' + index"
                       :ref="'specPond' + index"
                       :accepted-file-types="'image/jpeg, image/png, image/gif'"
+                      :allow-image-preview="true"
                       :allow-multiple="true"
+                      :allow-remove="true"
                       :class="'pl-md-2'"
                       :credits="''"
                       :files="dynamicFiles['spec' + spec.tempId]"
+                      :image-preview-height="200"
                       :label-idle="'拖曳或點選 上傳 圖片'"
                       :max-file-size="'20MB'"
+                      :max-files="5"
+                      :server="filePondServer"
                       @updatefiles="handleFileUpload(spec, 'spec', $event)"
                     />
                   </v-col>
@@ -262,12 +281,64 @@
 </template>
 
 <script setup>
+  import FilePondPluginImagePreview from 'filepond-plugin-image-preview'
+  import FilePondPluginMediaPreview from 'filepond-plugin-media-preview'
   import { v4 as uuid } from 'uuid'
   import { useField, useForm } from 'vee-validate'
   import { computed, ref, watch } from 'vue'
+  import vueFilePond from 'vue-filepond'
   import { useSnackbar } from 'vuetify-use-dialog'
   import * as yup from 'yup'
   import productService from '@/services/product'
+  import 'filepond/dist/filepond.min.css'
+  import 'filepond-plugin-image-preview/dist/filepond-plugin-image-preview.min.css'
+  import 'filepond-plugin-media-preview/dist/filepond-plugin-media-preview.min.css'
+
+  // Create a FilePond component with plugins registered
+  const FilePond = vueFilePond(FilePondPluginImagePreview, FilePondPluginMediaPreview)
+
+  const filePondServer = {
+    // 讀取檔案的處理方法
+    load: (source, load, error, progress, abort) => {
+      const request = new XMLHttpRequest()
+      request.open('GET', source)
+      request.responseType = 'blob'
+
+      request.addEventListener('load', () => {
+        if (request.status >= 200 && request.status < 300) {
+          const contentType = request.getResponseHeader('Content-Type')
+          const blob = new Blob([request.response], { type: contentType })
+          load(blob)
+        } else {
+          error('載入失敗')
+        }
+      })
+
+      request.addEventListener('error', () => error('載入錯誤'))
+
+      request.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          progress(true, e.loaded, e.total)
+        }
+      })
+
+      request.withCredentials = false // 允許跨域請求
+      request.send()
+
+      return {
+        abort: () => {
+          request.abort()
+          abort()
+        },
+      }
+    },
+
+    // 處理回應的方法
+    process: (fieldName, file, metadata, load, error, progress, abort) => {
+      progress(true, 0, 1)
+      load()
+    },
+  }
 
   const props = defineProps({
     modelValue: {
@@ -288,22 +359,17 @@
   })
 
   const isEditing = computed(() => !!props.product)
-
-  // 建立 snackbar 方便顯示訊息
   const createSnackbar = useSnackbar()
 
-  // 檔案上傳元件 ref
   const fileAgent = ref(null)
   const fileRecords = ref([])
-
-  // 新增 ref 來儲存動態上傳的檔案
   const dynamicFiles = ref({})
 
-  // 情緒分類與商品類別選項
   const emotionsOptions = ['正面', '中立', '負面', '其他']
   const categoryOptions = ['文字', '圖片', '音樂', '語音', '影片', '物品', '其他']
 
-  // vee-validate useForm 設定驗證規則與初始值
+  const contentSchema = yup.array().of(yup.string()).min(1, '內容不可為空').required('內容不可為空')
+
   const { handleSubmit, resetForm, isSubmitting } = useForm({
     validationSchema: yup.object({
       name: yup.string().required('商品名稱必填').max(50, '商品名稱最多50個字'),
@@ -324,19 +390,20 @@
       features: yup.array().of(
         yup.object({
           type: yup.string().oneOf(['文字說明', '圖片說明', '影音說明']),
-          content: yup.string(),
+          content: contentSchema,
+          tempId: yup.string(),
         })
       ),
       specifications: yup.array().of(
         yup.object({
           type: yup.string().oneOf(['文字說明', '圖片說明']),
-          content: yup.string(),
+          content: contentSchema,
+          tempId: yup.string(),
         })
       ),
       sell: yup.boolean().required(),
       roll: yup.boolean().required(),
     }),
-
     initialValues: {
       name: '',
       price: 0,
@@ -352,7 +419,6 @@
     },
   })
 
-  // vee-validate useField 管理表單欄位
   const name = useField('name')
   const price = useField('price')
   const emotions = useField('emotions')
@@ -365,126 +431,83 @@
   const roll = useField('roll')
   const images = useField('images')
 
-  // 關閉對話框並重置
   const closeDialog = () => {
     dialog.value = false
   }
 
-  // 處理封面圖上傳
   const updateCoverImage = (files) => {
     fileRecords.value = files
     images.value.value = files
   }
 
-  // 檢查是否達到數量上限
   const isFeaturesFull = computed(() => (features.value.value || []).length >= 10)
   const isSpecificationsFull = computed(() => (specifications.value.value || []).length >= 5)
 
-  // 處理動態表單內容新增與移除
   const addContent = (type) => {
-    if (type === 'features') {
-      if (!Array.isArray(features.value.value)) {
-        features.value.value = []
-      }
-      if (features.value.value.length >= 10) {
-        createSnackbar({
-          text: '商品特色最多只能新增 10 個',
-
-          snackbarProps: { color: 'red' },
-        })
-        return
-      }
-
-      features.value.value.push({
-        type: '文字說明',
-        content: '',
-        tempId: uuid(), // 新增了 uuid() 來確保每個新增項都有唯一的 ID
-      })
-    } else if (type === 'specifications') {
-      if (!Array.isArray(specifications.value.value)) {
-        specifications.value.value = []
-      } else if (specifications.value.value.length >= 5) {
-        createSnackbar({
-          text: '商品規格最多只能新增 5 個',
-
-          snackbarProps: { color: 'red' },
-        })
-        return
-      }
-
-      specifications.value.value.push({
-        type: '文字說明',
-        content: '',
-        tempId: uuid(), // 新增了 uuid()
-      })
+    const targetArray = type === 'features' ? features.value.value : specifications.value.value
+    const limit = type === 'features' ? 10 : 5
+    if (targetArray.length >= limit) {
+      createSnackbar({ text: `最多只能新增 ${limit} 個`, snackbarProps: { color: 'red' } })
+      return
     }
+    targetArray.push({
+      type: '文字說明',
+      content: [''],
+      tempId: uuid(),
+    })
   }
 
   const removeContent = (type, index) => {
     const targetArray = type === 'features' ? features.value.value : specifications.value.value
     const itemToRemove = targetArray[index]
-
-    // 移除檔案時，也從 dynamicFiles 中移除對應的檔案
     if (itemToRemove && itemToRemove.tempId) {
-      const key =
-        type === 'features' ? `feature${itemToRemove.tempId}` : `spec${itemToRemove.tempId}`
+      const key = `${type}${itemToRemove.tempId}`
       if (dynamicFiles.value[key]) {
         delete dynamicFiles.value[key]
       }
     }
-
-    // 移除陣列中的項目
     targetArray.splice(index, 1)
   }
 
-  // 處理動態檔案上傳
-  const handleFileUpload = (item, type, files) => {
-    const key = `${type}${item.tempId}`
+  const handleContentTypeChange = (item) => {
+    const key = `feature${item.tempId}`
+    const specKey = `spec${item.tempId}`
+    if (dynamicFiles.value[key]) delete dynamicFiles.value[key]
+    if (dynamicFiles.value[specKey]) delete dynamicFiles.value[specKey]
 
-    // 修正：確保 files 是一個有效的陣列，並且有檔案
-
-    if (files && files.length > 0) {
-      // 檢查是否有新上傳的檔案
-      const hasNewFile = files.some((file) => file.file instanceof File)
-      if (hasNewFile) {
-        // 有新檔案，將其添加到 dynamicFiles
-        dynamicFiles.value[key] = files
-        // 將 item.content 設置為一個標記，表示有檔案上傳
-        item.content = '__HAS_FILE__'
-      } else if (files[0].source) {
-        // 如果是既有的檔案（編輯模式），保留原始路徑
-        item.content = files[0].source
-      }
-    } else {
-      // 如果沒有檔案 (被刪除)，清空 dynamicFiles
-      delete dynamicFiles.value[key]
-      item.content = ''
-    }
+    item.content = item.type === '文字說明' ? [''] : []
   }
 
-  // 表單送出
-  const submit = handleSubmit(async (values) => {
-    // 新增模式下，檢查是否有至少一張圖片
-    if (!isEditing.value && fileRecords.value.length === 0) {
-      createSnackbar({
-        text: '請至少上傳一張商品圖片',
-        snackbarProps: { color: 'red' },
+  const handleFileUpload = (item, type, files) => {
+    const key = `${type}${item.tempId}`
+    dynamicFiles.value[key] = files
+    item.content = files
+      .map((file) => {
+        if (file.file instanceof File) return '__HAS_FILE__'
+        if (typeof file.source === 'string') return file.source
+        return ''
       })
+      .filter(Boolean)
+  }
+
+  const submit = handleSubmit(async (values) => {
+    if (!isEditing.value && fileRecords.value.length === 0) {
+      createSnackbar({ text: '請至少上傳一張商品圖片', snackbarProps: { color: 'red' } })
       return
-    } // 檢查動態檔案是否有選擇但沒有上傳
+    }
     for (const item of [...values.features, ...values.specifications]) {
-      if (item.type !== '文字說明' && !item.content) {
-        createSnackbar({
-          text: '圖片或影音內容不能為空',
-          snackbarProps: { color: 'red' },
-        })
+      if (!item.content || item.content.length === 0) {
+        createSnackbar({ text: '內容不能為空', snackbarProps: { color: 'red' } })
+        return
+      }
+      if (item.type === '文字說明' && item.content[0].trim() === '') {
+        createSnackbar({ text: '文字說明內容不能為空', snackbarProps: { color: 'red' } })
         return
       }
     }
 
     try {
       const fd = new FormData()
-      // 1. 處理基本欄位
       fd.append('emotions', values.emotions)
       fd.append('category', values.category)
       fd.append('details', values.details)
@@ -494,80 +517,53 @@
       fd.append('sell', values.sell)
       fd.append('roll', values.roll)
 
-      // 2. 處理商品圖片
       if (isEditing.value) {
-        // 編輯模式：找出被保留的舊圖片 URL
         const keptImages = fileRecords.value
           .filter((record) => typeof record.source === 'string' && !(record.file instanceof File))
           .map((record) => record.source)
         fd.append('existingImages', JSON.stringify(keptImages))
       }
-      // 找出新上傳的圖片檔案
       const newImages = fileRecords.value.filter((record) => record.file instanceof File)
       for (const image of newImages) {
         fd.append('images', image.file)
       }
 
-      // 3. 處理動態檔案與陣列內容
       const newDynamicFiles = []
-      const processedFeatures = []
-      const processedSpecifications = []
-
-      // 遍歷 features
-      for (const feature of values.features) {
-        if (feature.type === '文字說明') {
-          processedFeatures.push(feature)
-        } else {
-          const fileKey = `feature${feature.tempId}`
-          const files = dynamicFiles.value[fileKey] || []
-          const newFile = files.find((file) => file.file instanceof File)
-
-          if (newFile) {
-            newDynamicFiles.push(newFile.file)
-            processedFeatures.push({ type: feature.type, content: '__HAS_FILE__' })
-          } else if (feature.content && feature.content !== '__HAS_FILE__') {
-            // 沒有新檔案，但有舊檔案的 URL，直接傳送
-            processedFeatures.push({ type: feature.type, content: feature.content })
+      const processItems = (items, type) => {
+        return items.map((item) => {
+          if (item.type === '文字說明') {
+            return { type: item.type, content: item.content }
           }
-        }
+          const fileKey = `${type}${item.tempId}`
+          const files = dynamicFiles.value[fileKey] || []
+          const content = []
+          for (const file of files) {
+            if (file.file instanceof File) {
+              newDynamicFiles.push(file.file)
+              content.push('__HAS_FILE__')
+            } else if (typeof file.source === 'string') {
+              content.push(file.source)
+            }
+          }
+          return { type: item.type, content }
+        })
       }
 
-      // 遍歷 specifications
-      for (const spec of values.specifications) {
-        if (spec.type === '文字說明') {
-          processedSpecifications.push(spec)
-        } else {
-          const fileKey = `spec${spec.tempId}`
-          const files = dynamicFiles.value[fileKey] || []
-          const newFile = files.find((file) => file.file instanceof File)
-          if (newFile) {
-            newDynamicFiles.push(newFile.file)
-            processedSpecifications.push({ type: spec.type, content: '__HAS_FILE__' })
-          } else if (spec.content && spec.content !== '__HAS_FILE__') {
-            processedSpecifications.push({ type: spec.type, content: spec.content })
-          }
-        }
-      }
+      const processedFeatures = processItems(values.features, 'feature')
+      const processedSpecifications = processItems(values.specifications, 'spec')
 
-      // 將新上傳的動態檔案一次性 append 到 FormData
       for (const file of newDynamicFiles) {
         fd.append('dynamicMedia', file)
       }
 
-      // 將處理後的陣列轉換為 JSON 字串並 append
       fd.append('features', JSON.stringify(processedFeatures))
       fd.append('specifications', JSON.stringify(processedSpecifications))
 
-      // 呼叫 API
       await (isEditing.value
         ? productService.update(props.product._id, fd)
         : productService.create(fd))
 
-      createSnackbar({
-        text: '操作成功！',
-        snackbarProps: { color: 'green' },
-      })
-
+      createSnackbar({ text: '操作成功！', snackbarProps: { color: 'green' } })
       closeDialog()
       emit('submitSuccess')
     } catch (error) {
@@ -584,7 +580,6 @@
     (isOpen) => {
       if (isOpen) {
         if (isEditing.value) {
-          // 編輯模式
           name.value.value = props.product.name
           price.value.value = props.product.price
           emotions.value.value = props.product.emotions
@@ -594,73 +589,74 @@
           sell.value.value = props.product.sell
           roll.value.value = props.product.roll || false
 
-          // 使用深拷貝以避免直接修改原始資料
-          features.value.value = props.product.features
-            ? JSON.parse(JSON.stringify(props.product.features))
-            : []
-          specifications.value.value = props.product.specifications
-            ? JSON.parse(JSON.stringify(props.product.specifications))
-            : []
+          dynamicFiles.value = {}
 
-          // 處理封面圖
-          fileRecords.value =
-            props.product.images?.map((imgPath) => ({
-              source: imgPath.replaceAll('\\', '/'),
+          const getMimeType = (url) => {
+            const extension = url.split('.').pop().toLowerCase().split('?')[0]
+            const mimeTypes = {
+              // 圖片
+              jpg: 'image/jpeg',
+              jpeg: 'image/jpeg',
+              png: 'image/png',
+              gif: 'image/gif',
+              // 音訊
+              mp3: 'audio/mpeg',
+              wav: 'audio/wav',
+              // 影片
+              mp4: 'video/mp4',
+            }
+            return mimeTypes[extension] || 'application/octet-stream'
+          }
+
+          const createFilePondObject = (url) => {
+            const cleanUrl = url.replaceAll('\\', '/')
+            const mimeType = getMimeType(cleanUrl)
+            const isVideo = mimeType.startsWith('video/')
+            const isAudio = mimeType.startsWith('audio/')
+            const isImage = mimeType.startsWith('image/')
+
+            return {
+              source: cleanUrl,
               options: {
                 type: 'local',
                 file: {
-                  name: imgPath.split('/').pop(),
-                  size: 0,
-                  type: 'image/jpeg, image/png, image/gif',
+                  name: cleanUrl.split('/').pop().split('?')[0],
+                  size: 0, // Use 0 for existing files
+                  type: mimeType,
+                },
+                metadata: {
+                  // Provide poster for all types, simplifies logic
+                  poster: cleanUrl,
+                  // Explicitly set mediaType for the preview plugin
+                  mediaType: isVideo ? 'video' : isAudio ? 'audio' : isImage ? 'image' : null,
                 },
               },
-            })) || []
-
-          // 處理動態檔案
-          dynamicFiles.value = {} // 清空舊的 dynamicFiles，避免殘留
-
-          // 處理商品特色
-          for (const [index, feature] of features.value.value.entries()) {
-            // 假設你後端回傳的 content 就是 URL
-            if (feature.type !== '文字說明' && feature.content) {
-              // 修正：賦予每個動態項目一個唯一的臨時 ID
-              const tempId = uuid()
-              feature.tempId = tempId
-              const key = `feature${tempId}`
-
-              // 將既有的 URL 包裝成 FilePond 期待的陣列格式
-              dynamicFiles.value[key] = [
-                {
-                  source: feature.content,
-                  options: { type: 'local' },
-                },
-              ]
-
-              // 修正：將 item.content 設置為一個標記，表示有檔案上傳
-              feature.content = '__HAS_FILE__'
             }
           }
 
-          // 處理商品規格
-          for (const [index, spec] of specifications.value.value.entries()) {
-            if (spec.type === '圖片說明' && spec.content) {
+          const populateDynamicItems = (sourceItems, type) => {
+            if (!sourceItems) return []
+            return JSON.parse(JSON.stringify(sourceItems)).map((item) => {
               const tempId = uuid()
-              spec.tempId = tempId
-              const key = `spec${tempId}`
-              dynamicFiles.value[key] = [
-                {
-                  source: spec.content,
-                  options: { type: 'local' },
-                },
-              ]
-              spec.content = '__HAS_FILE__'
-            }
+              const key = `${type}${tempId}`
+              if (item.type !== '文字說明' && Array.isArray(item.content)) {
+                dynamicFiles.value[key] = item.content
+                  .map((url) => (url === '__HAS_FILE__' ? null : createFilePondObject(url)))
+                  .filter(Boolean)
+              }
+              return { ...item, tempId }
+            })
           }
+
+          features.value.value = populateDynamicItems(props.product.features, 'feature')
+          specifications.value.value = populateDynamicItems(props.product.specifications, 'spec')
+
+          // 處理商品圖片 (now using the unified function)
+          fileRecords.value = props.product.images?.map(createFilePondObject) || []
         } else {
-          // 新增模式
           resetForm()
           fileRecords.value = []
-          dynamicFiles.value = {} // 關閉時清空
+          dynamicFiles.value = {}
         }
       }
     },
