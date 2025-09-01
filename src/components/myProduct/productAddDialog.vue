@@ -575,11 +575,75 @@
     }
   })
 
+  // Helper functions moved outside the watcher
+  const getMimeType = (url) => {
+    const extension = url.split('.').pop().toLowerCase().split('?')[0]
+    const mimeTypes = {
+      // 圖片
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      gif: 'image/gif',
+      // 音訊
+      mp3: 'audio/mpeg',
+      wav: 'audio/wav',
+      // 影片
+      mp4: 'video/mp4',
+    }
+    return mimeTypes[extension] || 'application/octet-stream'
+  }
+
+  const createFilePondObject = (url) => {
+    const fullUrl = url.startsWith('http') ? url : `${baseURL}/${url.replace(/^\/+/, '')}`
+    const mimeType = getMimeType(fullUrl)
+    const isVideo = mimeType.startsWith('video/')
+    const isAudio = mimeType.startsWith('audio/')
+    const isImage = mimeType.startsWith('image/')
+
+    return {
+      source: fullUrl,
+      options: {
+        type: 'local',
+        file: null, // 讓 FilePond 去 server.load 下載
+        metadata: {
+          poster: fullUrl,
+          mediaType: isVideo ? 'video' : isAudio ? 'audio' : 'image',
+        },
+      },
+    }
+  }
+
+  // Refactored populateDynamicItems to return files instead of mutating dynamicFiles directly
+  const populateDynamicItems = (sourceItems, type) => {
+    const newItems = []
+    const collectedFiles = {}
+
+    if (!sourceItems) return { items: newItems, files: collectedFiles }
+
+    const rawItems = Array.isArray(sourceItems) ? sourceItems.map((item) => ({ ...item })) : []
+
+    for (const item of rawItems) {
+      const tempId = uuid()
+      const key = `${type}${tempId}`
+      if (item.type !== '文字說明' && Array.isArray(item.content)) {
+        const contentArray = [...item.content]
+        collectedFiles[key] = contentArray
+          .map((url) => (url === '__HAS_FILE__' ? null : createFilePondObject(url)))
+          .filter(Boolean)
+      }
+      newItems.push({ ...item, tempId })
+    }
+    return { items: newItems, files: collectedFiles }
+  }
+
   watch(
     () => dialog.value,
     (isOpen) => {
+      console.log('Dialog open state changed:', isOpen)
       if (isOpen) {
+        console.log('isEditing:', isEditing.value)
         if (isEditing.value) {
+          console.log('Entering edit mode. Product data:', props.product)
           name.value.value = props.product.name
           price.value.value = props.product.price
           emotions.value.value = props.product.emotions
@@ -589,69 +653,24 @@
           sell.value.value = props.product.sell
           roll.value.value = props.product.roll || false
 
-          dynamicFiles.value = {}
+          // Initialize a temporary object to collect all dynamic files
+          const tempDynamicFiles = {}
 
-          const getMimeType = (url) => {
-            const extension = url.split('.').pop().toLowerCase().split('?')[0]
-            const mimeTypes = {
-              // 圖片
-              jpg: 'image/jpeg',
-              jpeg: 'image/jpeg',
-              png: 'image/png',
-              gif: 'image/gif',
-              // 音訊
-              mp3: 'audio/mpeg',
-              wav: 'audio/wav',
-              // 影片
-              mp4: 'video/mp4',
-            }
-            return mimeTypes[extension] || 'application/octet-stream'
-          }
+          // Populate features and collect their files
+          const featuresResult = populateDynamicItems(props.product.features, 'feature')
+          features.value.value = featuresResult.items
+          Object.assign(tempDynamicFiles, featuresResult.files)
 
-          const createFilePondObject = (url) => {
-            const cleanUrl = url.replaceAll('\\', '/')
-            const mimeType = getMimeType(cleanUrl)
-            const isVideo = mimeType.startsWith('video/')
-            const isAudio = mimeType.startsWith('audio/')
-            const isImage = mimeType.startsWith('image/')
+          // Populate specifications and collect their files
+          const specificationsResult = populateDynamicItems(props.product.specifications, 'spec')
+          specifications.value.value = specificationsResult.items
+          Object.assign(tempDynamicFiles, specificationsResult.files)
 
-            return {
-              source: cleanUrl,
-              options: {
-                type: 'local',
-                file: {
-                  name: cleanUrl.split('/').pop().split('?')[0],
-                  size: 0, // Use 0 for existing files
-                  type: mimeType,
-                },
-                metadata: {
-                  // Provide poster for all types, simplifies logic
-                  poster: cleanUrl,
-                  // Explicitly set mediaType for the preview plugin
-                  mediaType: isVideo ? 'video' : isAudio ? 'audio' : isImage ? 'image' : null,
-                },
-              },
-            }
-          }
+          // Assign the collected files to dynamicFiles.value in one go
+          dynamicFiles.value = tempDynamicFiles
+          console.log('dynamicFiles initialized to:', dynamicFiles.value)
 
-          const populateDynamicItems = (sourceItems, type) => {
-            if (!sourceItems) return []
-            return JSON.parse(JSON.stringify(sourceItems)).map((item) => {
-              const tempId = uuid()
-              const key = `${type}${tempId}`
-              if (item.type !== '文字說明' && Array.isArray(item.content)) {
-                dynamicFiles.value[key] = item.content
-                  .map((url) => (url === '__HAS_FILE__' ? null : createFilePondObject(url)))
-                  .filter(Boolean)
-              }
-              return { ...item, tempId }
-            })
-          }
-
-          features.value.value = populateDynamicItems(props.product.features, 'feature')
-          specifications.value.value = populateDynamicItems(props.product.specifications, 'spec')
-
-          // 處理商品圖片 (now using the unified function)
+          // Handle main product images
           fileRecords.value = props.product.images?.map(createFilePondObject) || []
         } else {
           resetForm()
