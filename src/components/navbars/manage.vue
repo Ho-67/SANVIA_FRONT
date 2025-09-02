@@ -20,7 +20,13 @@
         value="account"
       />
       <v-list-item prepend-icon="mdi-archive-cog" title="訂單管理" to="/myOrder" value="order" />
-      <v-list-item prepend-icon="mdi-store-cog" title="商品管理" to="/myProduct" value="product" />
+      <v-list-item
+        v-show="user.role === 'seller'"
+        prepend-icon="mdi-store-cog"
+        title="商品管理"
+        to="/myProduct"
+        value="product"
+      />
     </v-list>
 
     <template #append>
