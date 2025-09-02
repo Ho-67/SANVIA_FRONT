@@ -200,22 +200,27 @@
           <v-window-item value="features">
             <v-card flat>
               <v-card-text>
-                <div v-for="(feature, i) in product.features" :key="'feature-' + i" class="mb-4">
-                  <p v-if="feature.type === '文字說明'" class="text-body-1">
-                    {{ feature.content }}
-                  </p>
-                  <v-img
-                    v-else-if="feature.type === '圖片說明'"
-                    class="rounded-0 my-2"
-                    :src="feature.content"
-                  />
-                  <v-responsive
-                    v-else-if="feature.type === '影音說明'"
-                    aspect-ratio="16/9"
-                    class="rounded-0 my-2"
-                  >
-                    <video controls :src="feature.content" style="width: 100%" />
-                  </v-responsive>
+                <div v-if="product.features && product.features.length > 0">
+                  <div v-for="(feature, i) in product.features" :key="'feature-' + i" class="mb-4">
+                    <p v-if="feature.type === '文字說明'" class="text-body-1">
+                      {{ feature.content[0] }}
+                    </p>
+                    <v-img
+                      v-else-if="feature.type === '圖片說明'"
+                      class="rounded-0 my-2 product-media-display"
+                      :src="feature.content[0]"
+                    />
+                    <v-responsive
+                      v-else-if="feature.type === '影音說明'"
+                      aspect-ratio="16/9"
+                      class="rounded-0 my-2"
+                    >
+                      <video class="product-media-display" controls :src="feature.content[0]" />
+                    </v-responsive>
+                  </div>
+                </div>
+                <div v-else class="text-center text-grey py-8">
+                  <p>賣家未填寫</p>
                 </div>
               </v-card-text>
             </v-card>
@@ -293,13 +298,18 @@
           <v-window-item value="specifications">
             <v-card flat>
               <v-card-text>
-                <div v-for="(spec, i) in product.specifications" :key="'spec-' + i" class="mb-4">
-                  <p v-if="spec.type === '文字說明'" class="text-body-1">{{ spec.content }}</p>
-                  <v-img
-                    v-else-if="spec.type === '圖片說明'"
-                    class="rounded-0 my-2"
-                    :src="spec.content"
-                  />
+                <div v-if="product.specifications && product.specifications.length > 0">
+                  <div v-for="(spec, i) in product.specifications" :key="'spec-' + i" class="mb-4">
+                    <p v-if="spec.type === '文字說明'" class="text-body-1">{{ spec.content[0] }}</p>
+                    <v-img
+                      v-else-if="spec.type === '圖片說明'"
+                      class="rounded-0 my-2 product-media-display"
+                      :src="spec.content[0]"
+                    />
+                  </div>
+                </div>
+                <div v-else class="text-center text-grey py-8">
+                  <p>賣家未填寫</p>
                 </div>
               </v-card-text>
             </v-card>
@@ -638,7 +648,7 @@
       }
     } catch (error) {
       console.error('加入購物車失敗:', error)
-      const errorMessage = error?.response?.data?.message || '加入購物車失敗'
+      const errorMessage = '請先登入' || error?.response?.data?.message
       createSnackbar({
         text: errorMessage,
         snackbarProps: { color: 'error' },
@@ -658,7 +668,7 @@
       }
     } catch (error) {
       console.error('操作失敗:', error)
-      const errorMessage = '操作失敗' || error.response?.data?.message
+      const errorMessage = '請先登入' || error.response?.data?.message
       createSnackbar({
         text: errorMessage,
         snackbarProps: { color: 'error' },
@@ -750,5 +760,13 @@
       height: auto;
       flex-shrink: 0;
     }
+  }
+</style>
+
+<style scoped>
+  .product-media-display {
+    width: 100%;
+    aspect-ratio: 16/9;
+    margin: 0;
   }
 </style>

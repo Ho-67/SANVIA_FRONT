@@ -44,7 +44,7 @@
         <v-btn exact icon router :to="isLoggedIn ? '/favorite' : '/register'">
           <Icon height="24" icon="tabler:mood-heart" width="24" />
         </v-btn>
-        <v-btn exact icon router to="/cart">
+        <v-btn exact icon router :to="isLoggedIn ? '/cart' : '/register'">
           <v-badge
             color="accent"
             :content="cartBadgeContent"

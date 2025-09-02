@@ -639,11 +639,8 @@
   watch(
     () => dialog.value,
     (isOpen) => {
-      console.log('Dialog open state changed:', isOpen)
       if (isOpen) {
-        console.log('isEditing:', isEditing.value)
         if (isEditing.value) {
-          console.log('Entering edit mode. Product data:', props.product)
           name.value.value = props.product.name
           price.value.value = props.product.price
           emotions.value.value = props.product.emotions
@@ -668,7 +665,6 @@
 
           // Assign the collected files to dynamicFiles.value in one go
           dynamicFiles.value = tempDynamicFiles
-          console.log('dynamicFiles initialized to:', dynamicFiles.value)
 
           // Handle main product images
           fileRecords.value = props.product.images?.map(createFilePondObject) || []
